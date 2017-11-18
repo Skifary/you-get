@@ -12,9 +12,11 @@ def universal_download(url, output_dir='.', merge=True, info_only=False, **kwarg
         content_type = get_head(url, headers=fake_headers, get_method='GET')['Content-Type']
     if content_type.startswith('text/html'):
         try:
-            embed_download(url, output_dir, merge=merge, info_only=info_only)
-        except: pass
-        else: return
+            embed_download(url, output_dir=output_dir, merge=merge, info_only=info_only, **kwargs)
+        except Exception:
+            pass
+        else:
+            return
 
     domains = url.split('/')[2].split('.')
     if len(domains) > 2: domains = domains[1:]
@@ -61,9 +63,16 @@ def universal_download(url, output_dir='.', merge=True, info_only=False, **kwarg
             urls += [url.replace('\\\\/', '/') for url in q_urls]
 
         # a link href to an image is often an interesting one
-        urls += re.findall(r'href="(https?://[^"]+\.jpe?g)"', page)
-        urls += re.findall(r'href="(https?://[^"]+\.png)"', page)
-        urls += re.findall(r'href="(https?://[^"]+\.gif)"', page)
+        urls += re.findall(r'href="(https?://[^"]+\.jpe?g)"', page, re.I)
+        urls += re.findall(r'href="(https?://[^"]+\.png)"', page, re.I)
+        urls += re.findall(r'href="(https?://[^"]+\.gif)"', page, re.I)
+
+        # MPEG-DASH MPD
+        mpd_urls = re.findall(r'src="(https?://[^"]+\.mpd)"', page)
+        for mpd_url in mpd_urls:
+            cont = get_content(mpd_url)
+            base_url = r1(r'<BaseURL>(.*)</BaseURL>', cont)
+            urls += [ r1(r'(.*/)[^/]*', mpd_url) + base_url ]
 
         # have some candy!
         candies = []

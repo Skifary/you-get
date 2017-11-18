@@ -22,6 +22,7 @@ class VideoExtractor():
         self.url = None
         self.title = None
         self.vid = None
+        self.m3u8_url = None
         self.streams = {}
         self.streams_sorted = []
         self.audiolang = None
@@ -108,6 +109,9 @@ class VideoExtractor():
             if stream['size'] != float('inf')  and stream['size'] != 0:
                 print("      size:          %s MiB (%s bytes)" % (round(stream['size'] / 1048576, 1), stream['size']))
 
+        if 'm3u8_url' in stream:
+            print("      m3u8_url:      {}".format(stream['m3u8_url']))
+
         if 'itag' in stream:
             print("    # download-with: %s" % log.sprint("you-get --itag=%s [URL]" % stream_id, log.UNDERLINE))
         else:
@@ -190,6 +194,7 @@ class VideoExtractor():
                 stream_id = kwargs['stream_id']
             else:
                 # Download stream with the best quality
+                from .processor.ffmpeg import has_ffmpeg_installed
                 stream_id = self.streams_sorted[0]['id'] if 'id' in self.streams_sorted[0] else self.streams_sorted[0]['itag']
 
             if 'index' not in kwargs:
@@ -205,6 +210,9 @@ class VideoExtractor():
                 urls = self.dash_streams[stream_id]['src']
                 ext = self.dash_streams[stream_id]['container']
                 total_size = self.dash_streams[stream_id]['size']
+
+            if ext == 'm3u8':
+                ext = 'mp4'
 
             if not urls:
                 log.wtf('[Failed] Cannot extract video source.')
@@ -237,5 +245,6 @@ class VideoExtractor():
 
             # For main_dev()
             #download_urls(urls, self.title, self.streams[stream_id]['container'], self.streams[stream_id]['size'])
-
-        self.__init__()
+        keep_obj = kwargs.get('keep_obj', False)
+        if not keep_obj:
+            self.__init__()
